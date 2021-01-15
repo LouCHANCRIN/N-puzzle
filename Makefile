@@ -10,7 +10,7 @@ FLAG	=	-Wall -Wextra -Werror
 
 C_PATH	=	src
 
-C_FILE	=	lem_in.c\
+C_FILE	=	n_puzzle.c\
 
 C_SRC	=	$(addprefix $(C_PATH)/, $(C_FILE))
 
