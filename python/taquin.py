@@ -68,7 +68,8 @@ class Piece(object):
 
 class Taquin(object):
 
-    def __init__(self, size: int, data):
+    def __init__(self, size: int, data: list):
+        # the data should be cleaned before being sent here
         self.size = size
         plateau = []
         for i in range(0, size):

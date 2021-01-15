@@ -1,3 +1,4 @@
+import time
 import sys
 
 from read_file import get_data
@@ -40,7 +41,10 @@ def a_star(plateau: list, size: int, empty_pos: list):
 def main(taquin: object):
     # Check unsolvable
     while not taquin.is_solved():
-        taquin.a_star()
+        print("Not solved")
+        time.sleep(1)
+        # taquin.a_star()
+    print("Solved")
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2 or sys.argv[1] == None):
