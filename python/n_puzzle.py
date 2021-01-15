@@ -1,41 +1,46 @@
 import sys
 
+from read_file import get_data
+from taquin import Taquin, connect_pieces
+
 class ArgsError(Exception):
     desc = "Invalid args"
 
 class FormatError(Exception):
     desc = "Invalid number of values"
 
-def get_data(path: str) -> list:
-    with open(path) as _file:
-        raw_data = _file.read()
-    len_raw_data = len(raw_data)
-    i = 0
-    while i < len_raw_data:
-        if raw_data[i] == '#':
-            j = 0
-            while raw_data[i + j] not in ['\n', '\0']:
-                j += 1
-            raw_data = raw_data[0:i] + raw_data[i + j:len_raw_data]
-            len_raw_data = len(raw_data)
-        i += 1
-    return raw_data.split()
+def heuristique():
+    return 1
 
-def a_star(plateau: list):
+def a_star(plateau: list, size: int, empty_pos: list):
+    print(empty_pos)
     return
 
-def main():
-    if (len(sys.argv) != 2 or (path := sys.argv[1]) == None):
+def main(plateau: list, size: int, empty_pos: list):
+    print("Plateau :")
+    for i in range(0, size):
+        print(plateau[i][0].current_value, plateau[i][1].current_value, plateau[i][2].current_value)
+    print("Attendu :")
+    for i in range(0, size):
+        print(plateau[i][0].expected_value, plateau[i][1].expected_value, plateau[i][2].expected_value)
+    a_star(plateau, size, empty_pos)
+
+if __name__ == "__main__":
+    if (len(sys.argv) != 2 or sys.argv[1] == None):
         raise ArgsError
+    path = sys.argv[1]
     data = get_data(path)
     size = int(data[0])
     if len(data) != (size * size + 1):
         raise FormatError
     del data[0]
-    plateau = [[0] * size] * size
+    plateau = [[], [], []]
+    empty_pos = None
     for i in range(0, size * size, size):
-        plateau[int(i / size)] = data[i:i + size]
-    a_star(plateau)
-
-if __name__ == "__main__":
-    main()
+        for j in range(0, size):
+            value = int(data[i+j])
+            plateau[int(i / size)].append(Taquin(value, int(i / size), j))
+            if int(data[i+j]) == 0:
+                empty_pos = [int(i / size), j]
+    plateau = connect_pieces(plateau, size)
+    main(plateau, size, empty_pos)
