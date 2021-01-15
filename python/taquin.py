@@ -5,20 +5,7 @@ SNAIL = {
     "up": "right"
 }
 
-class Taquin(object):
-
-    def __init__(self, value: int, x: int, y: int):
-        self.expected_value = -1
-        self.current_value = value
-        self.x = x
-        self.y = y
-        self.up = None
-        self.down = None
-        self.left = None
-        self.right = None
-
 def connect(plateau: list, i: int, j: int, expected_value: int):
-    # print(i, j)
     plateau[i][j].expected_value = expected_value
     try:
         plateau[i][j].left = plateau[i][j - 1]
@@ -66,3 +53,40 @@ def connect_pieces(plateau: list, size: int, connection: str= "right", i = 0, j 
             value = connect(plateau, i, j, value)
             i -= 1
         return connect_pieces(plateau, size, SNAIL[connection], i, j, value)
+
+class Piece(object):
+
+    def __init__(self, value: int, x: int, y: int):
+        self.expected_value = -1
+        self.current_value = value
+        self.x = x
+        self.y = y
+        self.up = None
+        self.down = None
+        self.left = None
+        self.right = None
+
+class Taquin(object):
+
+    def __init__(self, size: int, data):
+        self.size = size
+        plateau = []
+        for i in range(0, size):
+            plateau.append([])
+
+        empty_pos = None
+        for i in range(0, size * size, size):
+            for j in range(0, size):
+                value = int(data[i+j])
+                plateau[int(i / size)].append(Piece(value, int(i / size), j))
+                if int(data[i+j]) == 0:
+                    empty_pos = [int(i / size), j]
+        self.plateau = connect_pieces(plateau, size)
+        self.empty_pos = empty_pos
+
+    def is_solved(self):
+        for i in range(0, self.size):
+            for j in range(0, self.size):
+                if self.plateau[i][j].current_value != self.plateau[i][j].expected_value:
+                    return False
+        return True

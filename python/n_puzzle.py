@@ -1,7 +1,7 @@
 import sys
 
 from read_file import get_data
-from taquin import Taquin, connect_pieces
+from taquin import Taquin # , connect_pieces
 
 class ArgsError(Exception):
     desc = "Invalid args"
@@ -23,15 +23,24 @@ def print_plat(plateau: list):
         except:
             print(plateau[i][0].expected_value, plateau[i][1].expected_value, plateau[i][2].expected_value)
 
-def heuristique():
-    return 1
+# def is_solved(plateau: list, size: int):
+#     for 
+
+def heuristique(plateau: list, size: int) -> int:
+    score = 0
+    for i in range(0, size):
+        for j in range(0, size):
+            score += plateau[i][j].expected_value * plateau[i][j].current_value
+    return score
 
 def a_star(plateau: list, size: int, empty_pos: list):
-    print(empty_pos)
+    print(heuristique(plateau, size))
     return
 
-def main(plateau: list, size: int, empty_pos: list):
-    a_star(plateau, size, empty_pos)
+def main(taquin: object):
+    # Check unsolvable
+    while not taquin.is_solved():
+        taquin.a_star()
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2 or sys.argv[1] == None):
@@ -42,16 +51,7 @@ if __name__ == "__main__":
     if len(data) != (size * size + 1):
         raise FormatError
     del data[0]
-    plateau = []
-    for i in range(0, size):
-        plateau.append([])
-    empty_pos = None
-    for i in range(0, size * size, size):
-        for j in range(0, size):
-            value = int(data[i+j])
-            plateau[int(i / size)].append(Taquin(value, int(i / size), j))
-            if int(data[i+j]) == 0:
-                empty_pos = [int(i / size), j]
-    plateau = connect_pieces(plateau, size)
-    print_plat(plateau)
-    main(plateau, size, empty_pos)
+    taquin = Taquin(size, data)
+    # plateau = connect_pieces(plateau, size)
+    print_plat(taquin.plateau)
+    main(taquin)
