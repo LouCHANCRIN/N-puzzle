@@ -28,7 +28,7 @@ def connect(plateau: list, i: int, j: int, expected_value: int):
         plateau[i][j].down = None
     return expected_value + 1
 
-def connect_pieces(plateau: list, size: int, connection: str= "right", i = 0, j = 0, value=1):
+def connect_pieces(plateau : list, size : int, connection : str="right", i : int=0, j : int=0, value : int=1):
     if value == size * size:
         connect(plateau, i, j, 0)
         return plateau
@@ -125,11 +125,9 @@ class Taquin(object):
                     empty_pos = [int(i / size), j]
         self.plateau = connect_pieces(plateau, size)
         self.expected_value_index = {} 
-        self.initial_state = {}
         for i in range(0, size):
             for j in range(0, size):
                 self.expected_value_index[self.plateau[i][j].expected_value] = [self.plateau[i][j].x, self.plateau[i][j].y]
-                self.initial_state[self.plateau[i][j].current_value] = [self.plateau[i][j].x, self.plateau[i][j].y]
         self.empty_pos = empty_pos
         self.last_move = None
         self.last_move_heuristique = 0
@@ -138,6 +136,8 @@ class Taquin(object):
         self.cost_to_etat = {}
         self.open = {}
         self.close = []
+        self.count = 0
+        self.priority = {}
         # self.close = {}
 
     def plateau_to_string(self):
@@ -154,13 +154,11 @@ class Taquin(object):
             for y in range(0, self.size):
                 if self.plateau[x][y].current_value != 0:
                     expected_x, expected_y = self.expected_value_index[self.plateau[x][y].current_value]
-                    initial_x, initial_y = self.initial_state[self.plateau[x][y].current_value]
                     h += abs(x - expected_x) + abs(y - expected_y)
         return h
 
     def move_up(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-        # print(empty_piece.x, empty_piece.y)
         if empty_piece.up == None:
             return False
         else:
@@ -171,7 +169,6 @@ class Taquin(object):
 
     def move_down(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-        # print(empty_piece.x, empty_piece.y)
         if empty_piece.down == None:
             return False
         else:
@@ -182,7 +179,6 @@ class Taquin(object):
 
     def move_left(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-        # print(empty_piece.x, empty_piece.y)
         if empty_piece.left == None:
             return False
         else:
@@ -193,7 +189,6 @@ class Taquin(object):
             
     def move_right(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-        # print(empty_piece.x, empty_piece.y)
         if empty_piece.right == None:
             return False
         else:
@@ -202,19 +197,78 @@ class Taquin(object):
             self.plateau[self.empty_pos[0]][self.empty_pos[1]].current_value = 0
             return True
 
-    def check_a_star(self, g):
+    def check_a_star2(self, g):
         h = self.distance_de_manhattan()
         g += 1
         etat = self.plateau_to_string()
         if etat not in self.close:
             if etat not in self.open or (etat in self.open and self.open[etat]['f'] > h + g):
                 self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
-        # else:
-        #     if self.close[etat]['f'] > h + g:
+        else:
+            if self.close[etat]['f'] > h + g:
+                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
+
+    def check_a_star(self, g):
+        import math
+        h = self.distance_de_manhattan()
+        g += 1
+        priority = h + g
+        etat = self.plateau_to_string()
+        if etat not in self.close:
+            if etat not in self.open or (etat in self.open and self.open[etat]['f'] > h + g):
+                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size}
+                if  priority in self.priority:
+                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size})
+                else:
+                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size}]
+                # self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': self.count}
+        # elif self.close[etat]['f'] > h + g:
         #         self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
 
 
     def a_star(self, current_depth: int=1, max_depth: int=10):
+        count = 0
+        i = 0
+        is_solved = 1
+        while is_solved != 0:
+            if self.move_up():
+                self.check_a_star(count)
+                self.move_down()
+                
+            if self.move_down():
+                self.check_a_star(count)
+                self.move_up()
+                
+            if self.move_left():
+                self.check_a_star(count)
+                self.move_right()
+                
+            if self.move_right():
+                self.check_a_star(count)
+                self.move_left()
+
+            index1 = min(self.priority.keys())
+            best = self.priority[index1][-1]
+
+            self.plateau = best['plateau']
+            self.empty_pos = best['empty_pos']
+            count = best['g']
+            is_solved = best['h']
+            self.close.append(best)
+            # self.close[best] = self.open[best]
+            # del self.open[best]
+
+            del self.priority[index1][-1]
+            if len(self.priority[index1]) == 0:
+                del self.priority[index1]
+
+            self.count += 1
+            print(int(self.count), count)
+
+        # print_plat(self.plateau, self.size)
+
+
+    def a_star_shortest_way(self, current_depth: int=1, max_depth: int=10):
         count = 0
         i = 0
         is_solved = 1
@@ -240,11 +294,18 @@ class Taquin(object):
                 if best == None:
                     best = etat
                 elif self.open[etat]['f'] == self.open[best]['f']:
-                    # if self.open[etat]['g'] < self.open[best]['g']:
+                    # if self.open[etat]['g'] <= self.open[best]['g']:
+                    # if self.open[etat]['h'] - self.open[etat]['prio'] < self.open[best]['h'] - self.open[best]['prio']:
                     if self.open[etat]['h'] < self.open[best]['h']:
                         best = etat
+                    # elif self.open[etat]['h'] == self.open[best]['h'] and self.open[etat]['prio'] < self.open[best]['prio']:
+                    #     best = etat
+
                 elif self.open[etat]['f'] < self.open[best]['f']:
-                # elif self.open[etat]['f'] < self.open[best]['f'] and self.open[etat]['h'] < self.open[best]['h']:
+                # elif self.open[etat]['f'] + self.open[etat]['prio'] < self.open[best]['f'] + self.open[best]['prio']:
+                # elif self.open[etat]['f'] - self.open[etat]['prio'] < self.open[best]['f'] - self.open[best]['prio']:
+                # elif self.open[etat]['f'] <= self.open[best]['f'] and self.open[etat]['g'] <= self.open[best]['g']:
+                    # if self.open[etat]['prio'] < self.open[best]['prio']:
                     best = etat
 
             self.plateau = self.open[best]['plateau']
@@ -254,54 +315,13 @@ class Taquin(object):
             self.close.append(best)
             # self.close[best] = self.open[best]
             del self.open[best]
-            i += 1
 
-            print(i, count)
+            self.count += 1
+        print(int(self.count), count)
 
         # print_plat(self.plateau, self.size)
 
-    def a_star3(self, current_depth: int=1, max_depth: int=10):
-        # Dictionnaire avec matrice en clef et cost en valeur
-        # Dictionnaire avec cost en clef et matrice en valeur
-        # Meilleurs chemin vers le status actuel
-        # G cost = nombre de coup pour parvenir à l'état
-        # H cost = Distance de manhattan entre l'état actuel et l'état final
-        # On test les mouvement possibles et si on arrive à un état déja connu on regarde le chemins le plus rapide vers cet état
-        # On sauvegarde tout les états et on regarde les meilleurs parmis ceux qu'on n'a pas éxplorés
-        moves = {'up': None, 'down': None, 'left': None, 'right': None}
-        if self.move_up():
-            cost = self.distance_de_manhattan()
-            etat = self.plateau_to_string
-            self.cost_to_etat[cost] = etat
-            self.etat_to_cost[etat] = cost
-            self.move_down()
-            
-        if self.move_down():
-            cost = self.distance_de_manhattan()
-            etat = self.plateau_to_string
-            self.cost_to_etat[cost] = etat
-            self.etat_to_cost[etat] = cost
-            self.move_up()
-            
-        if self.move_left():
-            cost = self.distance_de_manhattan()
-            etat = self.plateau_to_string
-            self.cost_to_etat[cost] = etat
-            self.etat_to_cost[etat] = cost
-            self.move_right()
-            
-        if self.move_right():
-            cost = self.distance_de_manhattan()
-            etat = self.plateau_to_string
-            self.cost_to_etat[cost] = etat
-            self.etat_to_cost[etat] = cost
-            self.move_left()
 
-        print(_max)
-        best_move()
-        print_plat(self.plateau, self.size)
-        print(self.plateau_to_string())
-        time.sleep(0.01)
 
     def is_solved(self):
         for i in range(0, self.size):
