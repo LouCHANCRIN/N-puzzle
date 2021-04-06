@@ -9,26 +9,10 @@ class ArgsError(Exception):
 class FormatError(Exception):
     desc = "Invalid number of values"
 
-# def is_solved(plateau: list, size: int):
-#     for 
-
-# def heuristique(plateau: list, size: int) -> int:
-#     score = 0
-#     for i in range(0, size):
-#         for j in range(0, size):
-#             score += plateau[i][j].expected_value * plateau[i][j].current_value
-#     return score
-
-# def a_star(plateau: list, size: int, empty_pos: list):
-#     print(heuristique(plateau, size))
-#     return
 
 def main(taquin: object, which: int):
     # Check unsolvable
-    if which == 1:
-        taquin.a_star()
-    else:
-        taquin.a_star_shortest_way()
+    taquin.a_star()
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2 or sys.argv[1] == None):
@@ -40,8 +24,4 @@ if __name__ == "__main__":
         raise FormatError
     del data[0]
     taquin = Taquin(size, data)
-    taquin2 = Taquin(size, data)
-    # plateau = connect_pieces(plateau, size)
-    # print_plat(taquin.plateau, size)
-    main(taquin, 1)
-    # main(taquin2, 2)
+    # main(taquin, 1)

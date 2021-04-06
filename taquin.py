@@ -8,8 +8,55 @@ SNAIL = {
     "up": "right"
 }
 
-def connect(plateau: list, i: int, j: int, expected_value: int):
+class NotSolvableError(Exception):
+    desc = "This puzzle have no solution"
+
+def check_solvable(size: int, plateau: list):
+    print("Size :", size)
+    inversion = 0
+    blank_row = None
+    complete_list = []
+    current_array = []
+    expected_array = []
+
+    for i in range(0, size):
+        for j in range(0, size):
+            if plateau[i][j].current_value == 0:
+            # if plateau[i][j].current_value == plateau[size-1][size-1].expected_value:
+                blank_row = size - i
+            current_array.append(plateau[i][j].current_value)
+            expected_array.append(plateau[i][j].expected_value)
+            complete_list.append(plateau[i][j].expected_value)
+
+    for i in range(0, len(expected_array)):
+        if current_array[i] != expected_array:
+            for j in range(i + 1, len(expected_array)):
+                if expected_array.index(current_array[i]) > expected_array.index(current_array[j]):
+                    print(expected_array.index(current_array[i]), expected_array.index(current_array[j]))
+                    print()
+                    inversion += 1
+                    # inversion += size**2 - len(seen_before)
+                    # inversion += len(complete_list) - 1
+                    # print(len(complete_list) - 1)
+
+    print("Blank_row:", blank_row)
+    print("Inversion:", inversion)
+    if size % 2 == 0:
+        if blank_row % 2 == 0 and inversion % 2 != 0:
+            return True
+        elif blank_row % 2 != 0 and inversion % 2 == 0:
+            return True
+    else:
+        if inversion % 2 == 0:
+            return True
+    return False
+
+def connect(plateau: list, i: int, j: int, expected_value: int, size: int):
     plateau[i][j].expected_value = expected_value
+    if (i + 1) * (j + 1) == size**2:
+        plateau[i][j].normal_shape_expected_value = 0
+    else:
+        plateau[i][j].normal_shape_expected_value = i * size + j + 1
     if j > 0:
         plateau[i][j].left = plateau[i][j - 1]
     else:
@@ -28,32 +75,32 @@ def connect(plateau: list, i: int, j: int, expected_value: int):
         plateau[i][j].down = None
     return expected_value + 1
 
-def connect_pieces(plateau : list, size : int, connection : str="right", i : int=0, j : int=0, value : int=1):
+def connect_pieces(plateau: list, size: int, connection: str="right", i: int=0, j: int=0, value: int=1):
     if value == size * size:
-        connect(plateau, i, j, 0)
+        connect(plateau, i, j, 0, size)
         return plateau
 
     if connection == "right":
         while j < size-1 and plateau[i][j+1].expected_value == -1:
-            value = connect(plateau, i, j, value)
+            value = connect(plateau, i, j, value, size)
             j += 1
         return connect_pieces(plateau, size, SNAIL[connection], i, j, value)
 
     if connection == "left":
         while j > 0 and plateau[i][j-1].expected_value == -1:
-            value = connect(plateau, i, j, value)
+            value = connect(plateau, i, j, value, size)
             j -= 1
         return connect_pieces(plateau, size, SNAIL[connection], i, j, value)
 
     if connection == "down":
         while i < size-1 and plateau[i+1][j].expected_value == -1:
-            value = connect(plateau, i, j, value)
+            value = connect(plateau, i, j, value, size)
             i += 1
         return connect_pieces(plateau, size, SNAIL[connection], i, j, value)
 
     if connection == "up":
         while i > 0 and plateau[i-1][j].expected_value == -1:
-            value = connect(plateau, i, j, value)
+            value = connect(plateau, i, j, value, size)
             i -= 1
         return connect_pieces(plateau, size, SNAIL[connection], i, j, value)
 
@@ -77,7 +124,15 @@ def print_plat(plateau: list, size: int):
             print(plateau[i][0].current_value, plateau[i][1].current_value, plateau[i][2].current_value, plateau[i][3].current_value)
         except:
             print(plateau[i][0].current_value, plateau[i][1].current_value, plateau[i][2].current_value)
-    
+    print()
+    for i in range(0, size):
+        try:
+            print(plateau[i][0].normal_shape_expected_value, plateau[i][1].normal_shape_expected_value, plateau[i][2].normal_shape_expected_value, plateau[i][3].normal_shape_expected_value)
+            print(plateau[i][0].current_value, plateau[i][1].normal_shape_expected_value, plateau[i][2].normal_shape_expected_value, plateau[i][3].normal_shape_expected_value)
+        except:
+            print(plateau[i][0].normal_shape_expected_value, plateau[i][1].normal_shape_expected_value, plateau[i][2].normal_shape_expected_value)
+    print()
+
     # print()
     # current_piece = plateau[0][0]
     # tmp = plateau[0][0]
@@ -117,13 +172,16 @@ class Taquin(object):
             plateau.append([])
 
         empty_pos = None
-        for i in range(0, size * size, size):
+        for i in range(0, size**2, size):
             for j in range(0, size):
                 value = int(data[i+j])
                 plateau[int(i / size)].append(Piece(value, int(i / size), j))
                 if int(data[i+j]) == 0:
                     empty_pos = [int(i / size), j]
         self.plateau = connect_pieces(plateau, size)
+        print_plat(self.plateau, self.size)
+        if check_solvable(self.size, self.plateau) == False:
+            raise NotSolvableError
         self.expected_value_index = {} 
         for i in range(0, size):
             for j in range(0, size):
@@ -148,7 +206,6 @@ class Taquin(object):
         return string
 
     def distance_de_manhattan(self) -> float:
-        import math
         h = 0
         for x in range(0, self.size):
             for y in range(0, self.size):
@@ -156,6 +213,17 @@ class Taquin(object):
                     expected_x, expected_y = self.expected_value_index[self.plateau[x][y].current_value]
                     h += abs(x - expected_x) + abs(y - expected_y)
         return h
+
+    def tuile_rangee(self) -> int:
+        h = 0
+        # h = self.size ** 2
+        for x in range(0, self.size):
+            for y in range(0, self.size):
+                if self.plateau[x][y].current_value != 0:
+                    h += 1
+        print(h)
+        return h
+
 
     def move_up(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
@@ -197,33 +265,19 @@ class Taquin(object):
             self.plateau[self.empty_pos[0]][self.empty_pos[1]].current_value = 0
             return True
 
-    def check_a_star2(self, g):
-        h = self.distance_de_manhattan()
-        g += 1
-        etat = self.plateau_to_string()
-        if etat not in self.close:
-            if etat not in self.open or (etat in self.open and self.open[etat]['f'] > h + g):
-                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
-        else:
-            if self.close[etat]['f'] > h + g:
-                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
-
     def check_a_star(self, g):
-        import math
         h = self.distance_de_manhattan()
+        # h = self.tuile_rangee()
         g += 1
         priority = h + g
         etat = self.plateau_to_string()
         if etat not in self.close:
-            if etat not in self.open or (etat in self.open and self.open[etat]['f'] > h + g):
-                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size}
+            if etat not in self.open or (etat in self.open and self.open[etat]['f'] > priority):
+                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority}
                 if  priority in self.priority:
-                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size})
+                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat})
                 else:
-                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': g/self.size}]
-                # self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g, 'prio': self.count}
-        # elif self.close[etat]['f'] > h + g:
-        #         self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': h + g}
+                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat}]
 
 
     def a_star(self, current_depth: int=1, max_depth: int=10):
@@ -254,9 +308,8 @@ class Taquin(object):
             self.empty_pos = best['empty_pos']
             count = best['g']
             is_solved = best['h']
-            self.close.append(best)
-            # self.close[best] = self.open[best]
-            # del self.open[best]
+            self.close.append(best['key'])
+            del self.open[best['key']]
 
             del self.priority[index1][-1]
             if len(self.priority[index1]) == 0:
@@ -267,168 +320,9 @@ class Taquin(object):
 
         # print_plat(self.plateau, self.size)
 
-
-    def a_star_shortest_way(self, current_depth: int=1, max_depth: int=10):
-        count = 0
-        i = 0
-        is_solved = 1
-        while is_solved != 0:
-            if self.move_up():
-                self.check_a_star(count)
-                self.move_down()
-                
-            if self.move_down():
-                self.check_a_star(count)
-                self.move_up()
-                
-            if self.move_left():
-                self.check_a_star(count)
-                self.move_right()
-                
-            if self.move_right():
-                self.check_a_star(count)
-                self.move_left()
-
-            best = None
-            for etat in self.open:
-                if best == None:
-                    best = etat
-                elif self.open[etat]['f'] == self.open[best]['f']:
-                    # if self.open[etat]['g'] <= self.open[best]['g']:
-                    # if self.open[etat]['h'] - self.open[etat]['prio'] < self.open[best]['h'] - self.open[best]['prio']:
-                    if self.open[etat]['h'] < self.open[best]['h']:
-                        best = etat
-                    # elif self.open[etat]['h'] == self.open[best]['h'] and self.open[etat]['prio'] < self.open[best]['prio']:
-                    #     best = etat
-
-                elif self.open[etat]['f'] < self.open[best]['f']:
-                # elif self.open[etat]['f'] + self.open[etat]['prio'] < self.open[best]['f'] + self.open[best]['prio']:
-                # elif self.open[etat]['f'] - self.open[etat]['prio'] < self.open[best]['f'] - self.open[best]['prio']:
-                # elif self.open[etat]['f'] <= self.open[best]['f'] and self.open[etat]['g'] <= self.open[best]['g']:
-                    # if self.open[etat]['prio'] < self.open[best]['prio']:
-                    best = etat
-
-            self.plateau = self.open[best]['plateau']
-            self.empty_pos = self.open[best]['empty_pos']
-            count = self.open[best]['g']
-            is_solved = self.open[best]['h']
-            self.close.append(best)
-            # self.close[best] = self.open[best]
-            del self.open[best]
-
-            self.count += 1
-        print(int(self.count), count)
-
-        # print_plat(self.plateau, self.size)
-
-
-
     def is_solved(self):
         for i in range(0, self.size):
             for j in range(0, self.size):
                 if self.plateau[i][j].current_value != self.plateau[i][j].expected_value:
                     return False
         return True
-
-    def a_star_mutliple_moves(self):
-        '''Calcul de l'heuristique permettant de décider quels mouvement
-        faire pour résoudre le taquin
-        '''
-        # max_step = self.size
-        max_step = 1
-        check = {"UP" : [], "DOWN": [], "LEFT" : [], "RIGHT": []}
-        FUNCTIONS = {
-            'UP' : self.move_up,
-            'DOWN' : self.move_down,
-            'LEFT' : self.move_left,
-            'RIGHT' : self.move_right,
-        }
-
-        check['UP'] = self.check_all_moves_up(max_step=max_step)
-        check['DOWN'] = self.check_all_moves_down(max_step=max_step)
-        check['LEFT'] = self.check_all_moves_left(max_step=max_step)
-        check['RIGHT'] = self.check_all_moves_right(max_step=max_step)
-        print(f"Up : {check['UP']}")
-        print(f"Down : {check['DOWN']}")
-        print(f"Left : {check['LEFT']}")
-        print(f"Right : {check['RIGHT']}")
-        print_plat(self.plateau, self.size)
-        print()
-        best = 0
-        best_count = 0
-        best_key = None
-        for key in check:
-            for i in range(0, len(check[key])):
-                if check[key][i][1] > best:
-                    best = check[key][i][1]
-                    best_count = check[key][i][0]
-                    best_key = key
-        for i in range(0, best_count):
-            FUNCTIONS[best_key]()
-        print_plat(self.plateau, self.size)
-        print('\n\n\n\n')
-        time.sleep(1)
-
-    def check_all_moves_up(self, max_step: int=1) -> list:
-        done = 0
-        heuristique = []
-        for i in range(0, max_step):
-            empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-            if self.move_up():
-                done += 1
-                heuristique.append([done, self.heuristique1()])
-            else:
-                break
-
-        for i in range(0, done):
-            self.move_down()
-
-        return heuristique
-
-    def check_all_moves_down(self, max_step: int=1) -> list:
-        done = 0
-        heuristique = []
-        for i in range(0, max_step):
-            empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-            if self.move_down():
-                done += 1
-                heuristique.append([done, self.heuristique1()])
-            else:
-                break
-
-        for i in range(0, done):
-            self.move_up()
-
-        return heuristique
-
-    def check_all_moves_left(self, max_step: int=1) -> list:
-        done = 0
-        heuristique = []
-        for i in range(0, max_step):
-            empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-            if self.move_left():
-                done += 1
-                heuristique.append([done, self.heuristique1()])
-            else:
-                break
-
-        for i in range(0, done):
-            self.move_right()
-
-        return heuristique
-
-    def check_all_moves_right(self, max_step: int=1) -> list:
-        done = 0
-        heuristique = []
-        for i in range(0, max_step):
-            empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
-            if self.move_right():
-                done += 1
-                heuristique.append([done, self.heuristique1()])
-            else:
-                break
-
-        for i in range(0, done):
-            self.move_left()
-
-        return heuristique
