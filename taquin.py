@@ -12,10 +12,10 @@ class NotSolvableError(Exception):
     desc = "This puzzle have no solution"
 
 def check_solvable(size: int, plateau: list):
-    print("Size :", size)
-    inversion = 0
+    current_inversion = 0
+    expected_inversion = 0
     blank_row = None
-    complete_list = []
+    blank_row2 = None
     current_array = []
     expected_array = []
 
@@ -23,28 +23,46 @@ def check_solvable(size: int, plateau: list):
         for j in range(0, size):
             if plateau[i][j].current_value == 0:
             # if plateau[i][j].current_value == plateau[size-1][size-1].expected_value:
-                blank_row = size - i
+                blank_row = i
+                # blank_row = size - i
+            if plateau[i][j].expected_value == 0:
+                blank_row2 = i
+                # blank_row2 = size - i
             current_array.append(plateau[i][j].current_value)
             expected_array.append(plateau[i][j].expected_value)
-            complete_list.append(plateau[i][j].expected_value)
 
-    for i in range(0, len(expected_array)):
-        if current_array[i] != expected_array:
-            for j in range(i + 1, len(expected_array)):
-                if expected_array.index(current_array[i]) > expected_array.index(current_array[j]):
-                    print(expected_array.index(current_array[i]), expected_array.index(current_array[j]))
-                    print()
-                    inversion += 1
-                    # inversion += size**2 - len(seen_before)
-                    # inversion += len(complete_list) - 1
-                    # print(len(complete_list) - 1)
+    for i in range(0, len(current_array)):
+        for j in range(i+1, len(current_array)):
+            if expected_array[i] > expected_array[j] and expected_array[i] != 0 and expected_array[j] != 0:
+                expected_inversion += 1
+            if current_array[i] > current_array[j] and current_array[i] != 0 and current_array[j] != 0:
+                current_inversion += 1
+
+    print('c1 :',current_inversion)
+    print('e1 :', expected_inversion)
+    if size % 2 == 0:
+        current_inversion += blank_row
+    # expected_inversion += blank_row2
+    print('c2 :',current_inversion)
+    print('e2 :', expected_inversion)
+    if current_inversion % 2 == expected_inversion % 2:
+        return True
+    return False
+
+    # for i in range(0, len(expected_array)):
+    #     if current_array[i] != expected_array:
+    #         for j in range(i + 1, len(expected_array)):
+    #             if expected_array.index(current_array[i]) > expected_array.index(current_array[j]):
+    #                 print(current_array[i], expected_array.index(current_array[i]), expected_array.index(current_array[j]))
+    #                 inversion += 1
+    #         seen = expected_array
 
     print("Blank_row:", blank_row)
     print("Inversion:", inversion)
     if size % 2 == 0:
-        if blank_row % 2 == 0 and inversion % 2 != 0:
+        if blank_row % 2 != 0 and inversion % 2 == 0:
             return True
-        elif blank_row % 2 != 0 and inversion % 2 == 0:
+        elif blank_row % 2 == 0 and inversion % 2 != 0:
             return True
     else:
         if inversion % 2 == 0:
@@ -224,7 +242,6 @@ class Taquin(object):
         print(h)
         return h
 
-
     def move_up(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
         if empty_piece.up == None:
@@ -272,13 +289,14 @@ class Taquin(object):
         priority = h + g
         etat = self.plateau_to_string()
         if etat not in self.close:
-            if etat not in self.open or (etat in self.open and self.open[etat]['f'] > priority):
+            # if etat in self.open and self.open[etat]['f'] > priority:
+            #     del self.open[etat]
+            if etat not in self.open:
                 self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority}
                 if  priority in self.priority:
                     self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat})
                 else:
                     self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat}]
-
 
     def a_star(self, current_depth: int=1, max_depth: int=10):
         count = 0
@@ -309,6 +327,7 @@ class Taquin(object):
             count = best['g']
             is_solved = best['h']
             self.close.append(best['key'])
+            # if best['key'] in self.open:
             del self.open[best['key']]
 
             del self.priority[index1][-1]
