@@ -1,14 +1,41 @@
+import os
+
+class FormatError(Exception):
+    desc = "Invalid number of values"
+
 def get_data(path: str) -> list:
+    if os.path.isdir(path):
+        raise FormatError
     with open(path) as _file:
         raw_data = _file.read()
     len_raw_data = len(raw_data)
+    if len_raw_data == 0:
+        raise FormatError
     i = 0
-    while i < len_raw_data:
-        if raw_data[i] == '#':
-            j = 0
-            while raw_data[i + j] not in ['\n', '\0']:
-                j += 1
-            raw_data = raw_data[0:i] + raw_data[i + j:len_raw_data]
-            len_raw_data = len(raw_data)
-        i += 1
-    return raw_data.split()
+
+    raw_data = raw_data.split('\n')
+    cleaned_data = []
+    for line in raw_data:
+        cleaned_line = line.split('#')[0]
+        if cleaned_line != '':
+            cleaned_data.append(cleaned_line.split())
+    if len(cleaned_data) == 0 or len(cleaned_data[0]) != 1:
+        raise FormatError
+    
+    data = []
+    for line in cleaned_data:
+        for value in line:
+            if not value.isnumeric():
+                raise FormatError
+            data.append(int(value))    
+
+    size = int(data[0])
+    del data[0]
+    
+    if len(data) != (size * size):
+        raise FormatError
+
+    for i in range(0, len(data)):
+        if i not in data:
+            raise FormatError
+    return size, data

@@ -1,0 +1,5 @@
+# This puzzle is solvable
+3 1 4
+3#a
+2 0 6 #TEST
+8 7 5

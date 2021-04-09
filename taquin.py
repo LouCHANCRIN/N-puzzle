@@ -192,7 +192,7 @@ class Taquin(object):
         empty_pos = None
         for i in range(0, size**2, size):
             for j in range(0, size):
-                value = int(data[i+j])
+                value = data[i+j]
                 plateau[int(i / size)].append(Piece(value, int(i / size), j))
                 if int(data[i+j]) == 0:
                     empty_pos = [int(i / size), j]
@@ -214,7 +214,6 @@ class Taquin(object):
         self.close = []
         self.count = 0
         self.priority = {}
-        # self.close = {}
 
     def plateau_to_string(self):
         string = ''
