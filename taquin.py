@@ -11,6 +11,9 @@ SNAIL = {
 class NotSolvableError(Exception):
     desc = "This puzzle have no solution"
 
+class UnknownHeuristic(Exception):
+    desc = "This heuristic is not implemented"
+
 def check_solvable(size: int, plateau: list):
     current_inversion = 0
     expected_inversion = 0
@@ -151,39 +154,13 @@ def print_plat(plateau: list, size: int):
             print(plateau[i][0].normal_shape_expected_value, plateau[i][1].normal_shape_expected_value, plateau[i][2].normal_shape_expected_value)
     print()
 
-    # print()
-    # current_piece = plateau[0][0]
-    # tmp = plateau[0][0]
-    # while tmp != None:
-    #     while current_piece != None:
-    #         print('r :', current_piece.current_value)
-    #         current_piece = current_piece.right
-    #     print("down")
-    #     tmp = tmp.down
-    #     current_piece = tmp
-    # current_piece = plateau[size-1][size-1]
-    # tmp = plateau[size-1][size-1]
-    # while tmp != None:
-    #     while current_piece != None:
-    #         time.sleep(0.1)
-    #         print('l :', current_piece.current_value)
-    #         current_piece = current_piece.left
-    #     print("down")
-    #     tmp = tmp.up
-    #     current_piece = tmp
-    
-    # print("Attendu :")
-    # for i in range(0, size):
-    #     try:
-    #         print(plateau[i][0].expected_value, plateau[i][1].expected_value, plateau[i][2].expected_value, plateau[i][3].expected_value)
-    #     except:
-    #         print(plateau[i][0].expected_value, plateau[i][1].expected_value, plateau[i][2].expected_value)
-
-
 
 class Taquin(object):
 
-    def __init__(self, size: int, data):
+    def __init__(self, size: int, data, heuristique):
+        if heuristique not in ['manhattan', 'hamming', 'gaschnig']:
+            raise UnknownHeuristic
+        self.heuristique = heuristique
         self.size = size
         plateau = []
         for i in range(0, size):
@@ -231,16 +208,40 @@ class Taquin(object):
                     h += abs(x - expected_x) + abs(y - expected_y)
         return h
 
-    def tuile_rangee(self) -> int:
+    def distance_de_hamming(self) -> int:
         h = 0
-        # h = self.size ** 2
         for x in range(0, self.size):
             for y in range(0, self.size):
-                if self.plateau[x][y].current_value != 0:
+                if self.plateau[x][y].current_value != self.plateau[x][y].expected_value:
                     h += 1
-        print(h)
         return h
 
+    def distance_de_gaschnig(self):
+        h = 0
+        current_list = []
+        expected_list = []
+        for x in range(0, self.size):
+            for y in range(0, self.size):
+                current_list.append(self.plateau[x][y].current_value)
+                expected_list.append(self.plateau[x][y].expected_value)
+        while current_list != expected_list:
+            if expected_list[current_list.index(0)] == 0:
+                for i in range(0, len(current_list)):
+                    if current_list[i] != expected_list[i]:
+                        misplaced_value = current_list[i]
+                        misplaced_index = i
+                        break
+                current_list[current_list.index(0)] = misplaced_value
+                current_list[misplaced_index] = 0
+            else:
+                empty_index = current_list.index(0)
+                exp_value = expected_list[empty_index]
+                exp_value_current_index = current_list.index(exp_value)
+                current_list[empty_index] = exp_value
+                current_list[exp_value_current_index] = 0
+            h += 1
+        return h
+                
     def move_up(self) -> bool:
         empty_piece = self.plateau[self.empty_pos[0]][self.empty_pos[1]]
         if empty_piece.up == None:
@@ -281,41 +282,46 @@ class Taquin(object):
             self.plateau[self.empty_pos[0]][self.empty_pos[1]].current_value = 0
             return True
 
-    def check_a_star(self, g):
-        h = self.distance_de_manhattan()
-        # h = self.tuile_rangee()
+    def check_a_star(self, g, moves, move):
+        if self.heuristique == 'manhattan':
+            h = self.distance_de_manhattan()
+        if self.heuristique == 'hamming':
+            h = self.distance_de_hamming()
+        elif self.heuristique == 'gaschnig':
+            h = self.distance_de_gaschnig()
         g += 1
         priority = h + g
         etat = self.plateau_to_string()
         if etat not in self.close:
-            # if etat in self.open and self.open[etat]['f'] > priority:
-            #     del self.open[etat]
             if etat not in self.open:
-                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority}
+                tmp_moves = copy.copy(moves)
+                tmp_moves.append(move)
+                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'moves': tmp_moves}
                 if  priority in self.priority:
-                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat})
+                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'moves': tmp_moves})
                 else:
-                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat}]
+                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'moves': tmp_moves}]
 
     def a_star(self, current_depth: int=1, max_depth: int=10):
         count = 0
+        moves = []
         i = 0
         is_solved = 1
         while is_solved != 0:
             if self.move_up():
-                self.check_a_star(count)
+                self.check_a_star(count, moves, 'up')
                 self.move_down()
                 
             if self.move_down():
-                self.check_a_star(count)
+                self.check_a_star(count, moves, 'down')
                 self.move_up()
                 
             if self.move_left():
-                self.check_a_star(count)
+                self.check_a_star(count, moves, 'left')
                 self.move_right()
                 
             if self.move_right():
-                self.check_a_star(count)
+                self.check_a_star(count, moves, 'right')
                 self.move_left()
 
             index1 = min(self.priority.keys())
@@ -324,9 +330,9 @@ class Taquin(object):
             self.plateau = best['plateau']
             self.empty_pos = best['empty_pos']
             count = best['g']
+            moves = best['moves']
             is_solved = best['h']
             self.close.append(best['key'])
-            # if best['key'] in self.open:
             del self.open[best['key']]
 
             del self.priority[index1][-1]
@@ -334,9 +340,9 @@ class Taquin(object):
                 del self.priority[index1]
 
             self.count += 1
-            print(int(self.count), count)
-
-        # print_plat(self.plateau, self.size)
+            print(self.count, count)
+        print(moves)
+        print(len(moves))
 
     def is_solved(self):
         for i in range(0, self.size):

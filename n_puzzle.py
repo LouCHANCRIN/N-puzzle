@@ -2,17 +2,12 @@ import sys
 import os
 
 from read_file import get_data
-from taquin import Taquin, print_plat
+from taquin import Taquin, print_plat, NotSolvableError, UnknownHeuristic
 from read_file import FormatError
 
 
 class ArgsError(Exception):
     desc = "Invalid args"
-
-
-def main(taquin: object, which: int):
-    # Check unsolvable
-    taquin.a_star()
 
 def test_errors():
     path = os.listdir(sys.argv[1])
@@ -35,11 +30,21 @@ def test_errors():
             if a == 0:
                 taquin = Taquin(size, data)
 
-if __name__ == "__main__":
-    if (len(sys.argv) != 2 or sys.argv[1] == None):
-        raise ArgsError
-    test_errors()
+def main():
+    if (len(sys.argv) != 3 or sys.argv[1] == None):
+        print("Invalid arguments")
+        return
+    # test_errors()
 
-    # size, data = get_data(sys.argv[1])
-    # taquin = Taquin(size, data)
-    # main(taquin, 1)
+    size, data = get_data(sys.argv[1])
+    try:
+        taquin = Taquin(size, data, sys.argv[2])
+        taquin.a_star()
+    except UnknownHeuristic:
+        print("This heuristic is not implemented")
+    except NotSolvableError:
+        print("This puzzle is not solvable")
+
+
+if __name__ == "__main__":
+    main()
