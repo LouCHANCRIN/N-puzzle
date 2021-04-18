@@ -24,13 +24,11 @@ def make_puzzle(s, solvable, iterations):
 	for i in range(iterations):
 		swap_empty(p)
 
-	print(p)
 	if not solvable:
 		if p[0] == 0 or p[1] == 0:
 			p[-1], p[-2] = p[-2], p[-1]
 		else:
 			p[0], p[1] = p[1], p[0]
-	print(p)
 
 	return p
 
@@ -62,7 +60,6 @@ def make_goal(s):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	print(parser)
 
 	parser.add_argument("size", type=int, help="Size of the puzzle's side. Must be >3.")
 	parser.add_argument("-s", "--solvable", action="store_true", default=False, help="Forces generation of a solvable puzzle. Overrides -u.")
@@ -93,12 +90,13 @@ if __name__ == "__main__":
 	puzzle = make_puzzle(s, solvable=solv, iterations=args.iterations)
 
 	w = len(str(s*s))
-	print("# This puzzle is %s" % ("solvable" if solv else "unsolvable"))
-	print("%d" % s)
+	# print("# This puzzle is %s" % ("solvable" if solv else "unsolvable"))
+	# print("%d" % s)
 	for y in range(s):
 		for x in range(s):
-			print("%s" % (str(puzzle[x + y*s]).rjust(w)))
-		print()
+			pass
+		# 	print("%s" % (str(puzzle[x + y*s]).rjust(w)))
+		# print()
     
 	complete = str(s) + '\n'
 	for y in range(s):
