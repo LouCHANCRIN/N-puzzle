@@ -14,6 +14,17 @@ class NotSolvableError(Exception):
 class UnknownHeuristic(Exception):
     desc = "This heuristic is not implemented"
 
+def display_results(states, moves, time_complexity, size_complexity, size):
+    for j in range(0, size):
+        print(states[0][j])
+    for i in range(1, len(states)):
+        print(moves[i-1])
+        for j in range(0, size):
+            print(states[i][j])
+    print(len(states))
+    print(time_complexity)
+    print(size_complexity)
+
 def check_solvable(size: int, plateau: list):
     inversion = 0
     blank_row = None
@@ -238,7 +249,7 @@ class Taquin(object):
                 state[i].append(self.plateau[i][j].current_value)
         return state
 
-    def check_a_star(self, g, states):
+    def check_a_star(self, g, states, moves, move):
         if self.heuristique == 'manhattan':
             h = self.distance_de_manhattan()
         if self.heuristique == 'hamming':
@@ -250,37 +261,41 @@ class Taquin(object):
         etat = self.plateau_to_string()
         if etat not in self.close:
             if etat not in self.open:
+                tmp_moves = copy.copy(moves)
+                tmp_moves.append(move)
+
                 tmp_states = copy.copy(states)
                 state = self.list_state()
                 tmp_states.append(state)
                 self.time_complexity += 1
-                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'states': tmp_states}
+                self.open[etat] = {"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'states': tmp_states, 'moves': tmp_moves}
                 self.size_complexity = max(self.size_complexity, len(self.open))
                 if  priority in self.priority:
-                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'states': tmp_states})
+                    self.priority[priority].append({"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'states': tmp_states, 'moves': tmp_moves})
                 else:
-                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'states': tmp_states}]
+                    self.priority[priority] = [{"plateau": copy.deepcopy(self.plateau), "empty_pos": self.empty_pos, "h": h, 'g': g, 'f': priority, 'key': etat, 'states': tmp_states, 'moves': tmp_moves}]
 
     def a_star(self, current_depth: int=1, max_depth: int=10):
-        count = 0
-        states = []
         i = 0
+        count = 0
+        states = [self.list_state()]
+        moves = []
         is_solved = 1
         while is_solved != 0:
             if self.move_up():
-                self.check_a_star(count, states)
+                self.check_a_star(count, states, moves, 'up')
                 self.move_down()
                 
             if self.move_down():
-                self.check_a_star(count, states)
+                self.check_a_star(count, states, moves, 'down')
                 self.move_up()
                 
             if self.move_left():
-                self.check_a_star(count, states)
+                self.check_a_star(count, states, moves, 'left')
                 self.move_right()
                 
             if self.move_right():
-                self.check_a_star(count, states)
+                self.check_a_star(count, states, moves, 'right')
                 self.move_left()
 
             index1 = min(self.priority.keys())
@@ -289,6 +304,7 @@ class Taquin(object):
             self.plateau = best['plateau']
             self.empty_pos = best['empty_pos']
             count = best['g']
+            moves = best['moves']
             states = best['states']
             is_solved = best['h']
             self.close.append(best['key'])
@@ -299,11 +315,7 @@ class Taquin(object):
                 del self.priority[index1]
 
             self.count += 1
-        for i in range(0, len(states)):
-            print(states[i])
-        print(len(states))
-        print(self.time_complexity)
-        print(self.size_complexity)
+        display_results(states, moves, self.time_complexity, self.size_complexity, self.size)
 
     def is_solved(self):
         for i in range(0, self.size):
